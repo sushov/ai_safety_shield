@@ -1,80 +1,230 @@
-# AI Safety Shield
 
-**A professional-grade "Red Teaming" tool for evaluating Prompt Injection and Safety risks in LLMs.**
+
+#  AI Safety Shield
+
+**A professional-grade Red Teaming & Prompt Safety Evaluation tool for Large Language Models (LLMs).**
+
+---
 
 ## ⚡ Overview
 
-**AI Safety Shield** is a cybersecurity dashboard designed to test how Large Language Models (LLMs) handle malicious inputs. Unlike simple keyword blockers, this tool uses a **Secondary LLM (Gemini 2.0)** as a sophisticated safety classifier.
+**AI Safety Shield** is a security-focused evaluation dashboard designed to test how Large Language Models (LLMs) respond to **malicious, manipulative, and adversarial prompts**.
 
-It analyzes user prompts for:
+Instead of relying on fragile keyword blocklists, the system combines:
 
-* **Jailbreak Attempts** (ignoring instructions, roleplay attacks)
-* **Dangerous Content** (weapons, explosives, illicit acts)
-* **Self-Harm & Violence**
-* **Privacy Violations** (PII leakage)
+* **Deterministic rule-based safety signals**
+* **Model-based risk classification using a secondary LLM**
+* **Automated adversarial red teaming**
+* **Batch-style evaluation inspired by CI pipelines**
+
+The goal is to **treat prompts as untrusted input** and **AI safety as something you can continuously test and regression-check**.
+
+---
+
+##  What This Tool Evaluates
+
+AI Safety Shield analyzes user prompts for:
+
+* **Jailbreak Attempts**
+  (e.g., instruction overrides, roleplay coercion, “ignore previous rules”)
+
+* **Social Engineering & Intent Laundering**
+  (e.g., “for research”, “security audit”, “compliance testing”)
+
+* **Sensitive Target Extraction**
+  (system prompts, internal configuration, developer mode, secrets)
+
+* **Dangerous & Disallowed Content**
+  (violence, illicit activity, harmful instructions)
+
+* **False Positives**
+  (ensuring benign prompts are not incorrectly flagged)
 
 ---
 
 ##  Key Features
 
-### Model-Based Analysis (Gemini 2.0)
+###  Hybrid Safety Evaluation (Rules + LLM)
 
-Instead of relying on brittle "bad word" lists, the system uses **Google Gemini 2.0 Flash** to understand context. It can tell the difference between *"I want to kill a process in Linux"* (Safe) and *"I want to kill..."* (Unsafe).
+The system uses **two layers of protection**:
 
-### JSON Mode Enforcement
+* **Deterministic rule checks**
+  Detect known jailbreak patterns and sensitive targets that should *always* be high risk.
 
-The backend forces the AI model to output **structured JSON data**, ensuring the UI always receives a valid `riskScore` (0–100), `summary`, and `category` breakdown.
+* **Model-based safety classification (Gemini)**
+  Interprets intent, context, and ambiguity to provide nuanced scoring and explanations.
 
-### Safety Filter Bypass (For Testing)
+If a prompt requests sensitive system information, a **risk floor** is applied — even if the model underestimates the threat.
 
-To accurately test dangerous prompts (like *"How to make a bomb"*), the backend explicitly disables the default API safety filters (`BLOCK_NONE`). This allows the model to **analyze** the threat rather than simply refusing to answer.
+> This prevents polite or cleverly worded attacks from slipping through.
 
-### Cyber-Intel UI
+---
 
-A dark-mode interface inspired by enterprise security tools (Splunk, CrowdStrike), featuring:
+###  Structured JSON Enforcement
 
-* Glassmorphism effects
-* Real-time status indicators
+All AI responses are constrained to **strict JSON schema output**, ensuring:
+
+* Reliable parsing
+* Consistent UI rendering
+* No hallucinated or free-form responses
+
+Each analysis returns:
+
+* `riskScore` (0–100)
+* `summary`
+* `categories`
+* `suggestions`
+* `deterministic safety signals`
+
+---
+
+###  Safe-by-Design Automated Red Teaming
+
+The **Red Team mode** automatically generates **sanitized adversarial variants** of a prompt using common attack styles:
+
+* Social Engineering
+* Roleplay Coercion
+* Instruction Inversion
+
+**Important:**
+The system does **not** generate real secret-extraction prompts.
+All adversarial variants preserve the *attack style* without requesting actual sensitive data, making them safe to store, test, and run in CI environments.
+
+Each variant is then **automatically evaluated**, simulating how attackers probe systems in the real world.
+
+---
+
+###  Promptfoo-Style Batch Evaluation
+
+The backend supports evaluating **multiple prompts in a single run**, producing:
+
+* Per-prompt risk scores
+* Aggregate statistics (average & max risk)
+* Regression-friendly output
+
+This mirrors how modern teams test prompts before deploying them to production.
+
+---
+
+###  Cyber-Intel Dashboard UI
+
+A dark-mode interface inspired by enterprise security tooling (Splunk, CrowdStrike), featuring:
+
 * Traffic-light risk scoring
+* Deterministic signal badges (why a prompt is risky)
+* Clear, explainable summaries
+* Clean separation between single analysis and red-team results
+
+---
+
+## Architecture Overview
+
+```
+User Prompt
+     |
+     v
+Rule-Based Signal Detection
+     |
+     v
+LLM Safety Classifier (Gemini)
+     |
+     v
+Risk Floor Enforcement
+     |
+     v
+Final Risk Report (JSON)
+     |
+     v
+React Security Dashboard
+```
+
+### Red Team Flow
+
+```
+Original Prompt
+      |
+      v
+Sanitized Red Team Generator
+      |
+      v
+Adversarial Variants (3)
+      |
+      v
+Batch Safety Evaluation
+      |
+      v
+Threat Intelligence View
+```
+
+---
+
+## Why This Design Matters
+
+* **LLMs can be fooled by tone and framing**
+  → deterministic rules catch known bad patterns
+
+* **Rules alone lack context**
+  → model-based analysis adds nuance
+
+* **Attackers don’t try once**
+  → automated red teaming tests multiple vectors
+
+* **Safety must be testable**
+  → batch evaluation enables regression detection
+
+This is how **real AI safety and trust systems are built**.
 
 ---
 
 ## Tech Stack
 
-* **Frontend:** React (Vite), CSS3 (variables & grid)
-* **Backend:** Node.js, Express
-* **AI Engine:** Google Gemini API (`gemini-2.0-flash`)
+**Frontend**
+
+* React (Vite)
+* CSS3 (custom variables & grid)
+
+**Backend**
+
+* Node.js
+* Express
+* Rate limiting & timeout handling
+
+**AI Engine**
+
+* Google Gemini API (`gemini-2.5-flash-lite`)
+* Structured JSON output
+* Safety classifier mode
 
 ---
 
-## ⚙️ Installation & Setup
+## Installation & Setup
 
-### 1. Clone the Repository
+### Clone the Repository
 
 ```bash
 git clone https://github.com/sushov/ai-safety-shield.git
 cd ai-safety-shield
 ```
 
-### 2. Backend Setup
+---
 
-The backend runs on port `3001` and handles API communication.
+### Backend Setup (Port 3001)
 
 ```bash
 npm install express cors dotenv node-fetch
 ```
 
-Create a `.env` file in the project root:
+Create a `.env` file:
 
 ```env
 GEMINI_API_KEY=your_google_api_key_here
 ```
 
-> You can obtain an API key from Google AI Studio.
+> Obtain an API key from Google AI Studio.
 
-### 3. Frontend Setup
+---
 
-The frontend runs on port `5173` (Vite default).
+### Frontend Setup (Port 5173)
 
 ```bash
 npm install
@@ -82,49 +232,34 @@ npm install
 
 ---
 
-## ▶️ Running the Application
+## Running the Application
 
-You need to run **two terminals** simultaneously.
+Run **two terminals**:
 
-**Terminal 1 (Backend):**
+### Terminal 1 – Backend
 
 ```bash
 node server/index.js
-# ✅ Server running on http://localhost:3001
+# Server running on http://localhost:3001
 ```
 
-**Terminal 2 (Frontend):**
+### Terminal 2 – Frontend
 
 ```bash
 npm run dev
-# ➜  Local:   http://localhost:5173/
+# ➜ Local: http://localhost:5173
 ```
 
-Open your browser at `http://localhost:5173`.
-
----
-
-## 🧬 Architecture
-
-```mermaid
-graph LR
-    User[User Input] -->|POST /analyze| Backend[Node.js Server]
-    Backend -->|Bypass Filters| Gemini[Gemini 2.0 Flash]
-    Gemini -->|Structured JSON| Backend
-    Backend -->|Risk Score & Summary| UI[React Dashboard]
-```
-
-1. **Input:** User enters a potentially malicious prompt.
-2. **Proxy:** Node.js server receives the text.
-3. **Analysis:** The server sends the text to Gemini with instructions to act as a **Safety Classifier**.
-4. **Response:** Gemini returns a JSON object with risk assessment.
-5. **Display:** React renders the data into the visual dashboard.
+Open your browser at **[http://localhost:5173](http://localhost:5173)**
 
 ---
 
 ## ⚠️ Disclaimer
 
-This tool is for **educational and defensive security testing purposes only**. It allows for the input and processing of potentially harmful text to evaluate AI safety alignment. The author is not responsible for any misuse of this tool.
+This project is intended **strictly for educational and defensive security research**.
+
+It allows the input and analysis of potentially harmful text **solely to evaluate AI safety behavior**.
+The author is **not responsible for misuse** of this tool.
 
 ---
 
@@ -132,9 +267,11 @@ This tool is for **educational and defensive security testing purposes only**. I
 
 **Sushov Karmacharya**
 
-* GitHub: [@sushov](https://github.com/sushov)
-* LinkedIn: [Sushov Karmacharya](https://linkedin.com/in/sushov)
+* GitHub: [https://github.com/sushov](https://github.com/sushov)
+* LinkedIn: [https://www.linkedin.com/in/sushov-karmacharya/](https://www.linkedin.com/in/sushov-karmacharya/)
 
 ---
 
-_Built with ❤️ for the AI Safety co
+### *Built with ❤️ for AI Safety, Security Engineers, and Responsible LLM Development*
+
+---
